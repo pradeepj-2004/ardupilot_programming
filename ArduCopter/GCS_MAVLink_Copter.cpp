@@ -1387,6 +1387,8 @@ uint8_t GCS_MAVLINK_Copter::send_available_mode(uint8_t index) const
 #endif
         &copter.mode_stabilize,
         &copter.mode_althold,
+        &copter.mode_newmode,
+      
 #if MODE_CIRCLE_ENABLED
         &copter.mode_circle,
 #endif

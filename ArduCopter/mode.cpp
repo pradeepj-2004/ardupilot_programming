@@ -43,6 +43,9 @@ Mode *Copter::mode_from_mode_num(const Mode::Number mode)
 
         case Mode::Number::ALT_HOLD:
             return &mode_althold;
+        
+        case Mode::Number::NEW_MODE:
+            return &mode_newmode;
 
 #if MODE_AUTO_ENABLED
         case Mode::Number::AUTO:
@@ -208,7 +211,9 @@ bool Copter::gcs_mode_enabled(const Mode::Number mode_num)
         (uint8_t)Mode::Number::SYSTEMID,
         (uint8_t)Mode::Number::AUTOROTATE,
         (uint8_t)Mode::Number::AUTO_RTL,
-        (uint8_t)Mode::Number::TURTLE
+        (uint8_t)Mode::Number::TURTLE,
+        (uint8_t)Mode::Number::NEW_MODE
+
     };
 
     return !block_GCS_mode_change((uint8_t)mode_num, mode_list, ARRAY_SIZE(mode_list));
@@ -226,6 +231,8 @@ uint32_t Copter::get_available_mode_enabled_mask() const
 #endif
         &copter.mode_stabilize,
         &copter.mode_althold,
+        &copter.mode_newmode,
+
 #if MODE_CIRCLE_ENABLED
         &copter.mode_circle,
 #endif

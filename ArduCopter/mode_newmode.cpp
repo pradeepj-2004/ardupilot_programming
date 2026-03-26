@@ -18,35 +18,35 @@ void ModeNewMode::run()
     // gcs().send_text(MAV_SEVERITY_INFO, "NEW MODE RUNNING");
     static uint32_t last_print = 0;
 
-    if (AP_HAL::millis() - last_print > 1000) {
-
-        float roll  = degrees(copter.ahrs.get_roll());
-        float pitch = degrees(copter.ahrs.get_pitch());
-        float yaw   = degrees(copter.ahrs.get_yaw());
-
-        gcs().send_text(MAV_SEVERITY_INFO,
-                        "Roll: %.2f  Pitch: %.2f  Yaw: %.2f",
-                        roll, pitch, yaw);
-
-        last_print = AP_HAL::millis();
-    }
-    // Check if motors are armed
+    // Wait until armed
     if (!copter.motors->armed()) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Motors not armed, skipping motor output");
-
+        gcs().send_text(MAV_SEVERITY_INFO, "Waiting for arming...");
         return;
-        
     }
-    uint16_t pwm = 1200;
+
+    // 🔥 Kill all internal controllers
+    attitude_control->relax_attitude_controllers();
+    copter.motors->set_throttle(0);
+
+    // Read RC throttle (1000–2000)
+    uint16_t pwm = channel_throttle->get_radio_in();
+
+    // Safety clamp
+    pwm = constrain_uint16(pwm, 1000, 2000);
+
     motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
 
-    SRV_Channels::set_output_pwm(SRV_Channel::k_motor1, pwm);
-    SRV_Channels::set_output_pwm(SRV_Channel::k_motor2, pwm);
+    // 3. Directly write PWM values to the first four channels
+    // Note: SRV_Channel indices 0-3 correspond to Pixhawk Ports 1-4
+    SRV_Channels::set_output_pwm_chan_timeout(0, pwm, 100); // Port 1: 1500us
+    SRV_Channels::set_output_pwm_chan_timeout(1, pwm, 100); // Port 2: 1200us
+    SRV_Channels::set_output_pwm_chan_timeout(2, 1000, 100); // Port 3: 1100us
+    SRV_Channels::set_output_pwm_chan_timeout(3, 1000, 100); // Port 4: 1900us
 
-    // Keep other motors off
-    SRV_Channels::set_output_pwm(SRV_Channel::k_motor3, 1000);
-    SRV_Channels::set_output_pwm(SRV_Channel::k_motor4, 1000);
-
-
+    // Debug print (1 Hz)
+    if (AP_HAL::millis() - last_print > 1000) {
+        gcs().send_text(MAV_SEVERITY_INFO, "PWM: %u", pwm);
+        last_print = AP_HAL::millis();
+    }
 
 }
